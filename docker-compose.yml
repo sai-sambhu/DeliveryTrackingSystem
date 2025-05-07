@@ -1,0 +1,105 @@
+version: '3.7'
+
+networks:
+  kafka_network:
+    driver: bridge
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    restart: always
+    networks:
+      - kafka_network
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    restart: always
+    depends_on:
+      - zookeeper
+    networks:
+      - kafka_network
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+  kafka-connect:
+    image: debezium/connect:2.5
+    container_name: debezium-connect
+    restart: always
+    depends_on:
+      - kafka
+    networks:
+      - kafka_network
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: "kafka:9092"
+      GROUP_ID: "1"
+      CONFIG_STORAGE_TOPIC: "my_connect_topic"
+      OFFSET_STORAGE_TOPIC: "my_connect_offsets"
+      STATUS_STORAGE_TOPIC: "my_connect_statuses"
+      CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+    volumes:
+      - ./mongo-connector.json:/kafka/config/mongo-connector.json
+
+  connector-init:
+    image: curlimages/curl:latest
+    container_name: connector-init
+    depends_on:
+      - kafka-connect
+    networks:
+      - kafka_network
+    entrypoint: >
+      sh -c '
+      echo "Waiting for Kafka Connect to be ready...";
+      until curl -s http://debezium-connect:8083/connectors; do
+        echo "Kafka Connect not ready yet. Waiting...";
+        sleep 2;
+      done;
+      echo "Kafka Connect is ready. Registering connector...";
+      curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" http://debezium-connect:8083/connectors/ -d @/config/mongo-connector.json;
+      echo "Mongo Connector registered successfully!";
+      sleep infinity
+      '
+    volumes:
+      - ./mongo-connector.json:/config/mongo-connector.json
+
+  node-app:
+    container_name: node-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - connector-init
+    ports:
+      - "3000:3000" #change it in .env if altered here
+    networks:
+      - kafka_network
+    volumes:
+      - .:/usr/src/app
+    env_file:
+      - .env

@@ -1,0 +1,10 @@
+{
+  "name": "mongodb-source-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mongodb.MongoDbConnector",
+    "tasks.max": "1",
+    "mongodb.connection.string": "mongodb+srv://useradmin:Mastikaro1@mapsdemo.global.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false&maxIdleTimeMS=120000",
+    "collection.include.list": "mapsdemo.test",
+    "topic.prefix": "maps"
+  }
+}

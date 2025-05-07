@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>find shortest path coordinates</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <style>
+    #map { height: 600px; width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <p></p>
+  <button onclick="copyContent()">Copy Coordinates</button>
+  <p id="coordinates"></p>
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+  <script>
+    var map = L.map('map').setView([51.50087, -0.13965], 15); 
+
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Coordinates for start and end points
+    var startCoord = [51.50095, -0.12462];  // Start: London
+    var endCoord = [51.50102, -0.12646];     // End: Nearby coordinates
+
+    L.marker(startCoord).addTo(map).bindPopup("📍 Source").openPopup();
+    L.marker(endCoord).addTo(map).bindPopup("🏁 Destination");
+    // routing control
+    var routeControl = L.Routing.control({
+      waypoints: [
+        L.latLng(startCoord),
+        L.latLng(endCoord)
+      ],
+      routeWhileDragging: true,
+      router: L.Routing.osrmv1()  // Use the OSRM routing engine
+    }).addTo(map);
+
+    // Function to extract path coordinates
+    function getPathCoordinates(route) {
+      var pathCoordinates = [];
+      route.coordinates.forEach(function(coord) {
+        pathCoordinates.push({
+          lat: coord.lat,
+          lng: coord.lng
+        });
+      });
+      return pathCoordinates;
+    }
+
+    // Listen for when the route is found
+    routeControl.on('routesfound', function(event) {
+      var route = event.routes[0]; 
+      var pathCoordinates = getPathCoordinates(route); 
+      console.log(pathCoordinates); 
+
+      // Format the coordinates to display in the paragraph
+      var coordinatesText = JSON.stringify(pathCoordinates, null, 2); // Convert the array to a string with formatting
+      //document.getElementById('coordinates').textContent = coordinatesText; // Add the coordinates to the paragraph
+      document.getElementById('coordinates').innerHTML = "";
+      for (let i = 0; i < pathCoordinates.length-1; i++) {
+      if (i%5==0){  
+        document.getElementById('coordinates').innerHTML += JSON.stringify(pathCoordinates[i]) + ",<br>&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;";
+      }
+      else{
+        document.getElementById('coordinates').innerHTML += JSON.stringify(pathCoordinates[i]) + ",";
+      }
+      }
+      document.getElementById('coordinates').innerHTML += "<br>&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;" + JSON.stringify(pathCoordinates[pathCoordinates.length-1]);
+      
+    
+    });
+
+    function copyContent() {
+            const content = document.getElementById("coordinates").innerText;
+            navigator.clipboard.writeText(content).then(() => {
+                alert("Coordinates copied to clipboard!");
+            }).catch(err => {
+                console.error("Failed to copy: ", err);
+            });
+        }
+
+  </script>
+</body>
+</html>

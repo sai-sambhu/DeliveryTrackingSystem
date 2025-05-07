@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Delivery Agent Tracking App</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header>Demo App for vCore Change Streams integration with Kafka Debezium Connector</header>
+
+<div class="container">
+  <div class="map-section">
+    <h2>Delivery Tracking App</h2>
+    <div class="buttons">
+      <button id="start-delivery">See Live Deliveries</button>
+      <button id="check-deliver-status">Check Deliver Status</button>
+    </div>
+    <div id="map"></div>
+  </div>
+  <div class="info-section">
+    <div class="producer-section">
+      <h3>Delivery Agent Live Location <br>(Updates from driver's app to vCore)</h3>
+      <div class="producer-text-area" id="producer-textbox"></div>
+    </div>
+    <div class="consumer-section">
+      <i id="event-counter" class="tooltip">
+        <h3>
+          Delivery Agent Live Events (Kafka Consumer) <br>
+          <small>Hover to see Time Elapsed by drivers</small>
+        </h3>
+        <span class="tooltiptext" id="drivers-tooltip"></span>
+      </i>
+      <div class="consumer-text-area" id="consumer-textbox"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const map = L.map('map').setView([51.50087, -0.13965], 14.5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+
+    let deliveryMarker = {}, homeMarker = {}, optimalRoute = {}, deviatedRoute = {};
+    let allRoutes = [];
+    let activeDriver;
+    let producerCount = 1, consumerCount = 1;
+    let driversTimeAndDist = {};
+
+    const fetchLiveCoordinates = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/coordinates-list');
+        const data = await response.json();
+        allRoutes = data;
+        data.forEach(driver => {
+          renderMarkersAndRoutes(driver.optimalPath[0], driver.optimalPath.at(-1),
+            driver.optimalPath.map(p => [p.lat, p.lng]),
+            driver.deviatedPath.map(p => [p.lat, p.lng]), true, true, {name: driver.name});
+        });
+      } catch (err) {
+        console.error("Error fetching coordinates:", err);
+      }
+    };
+
+    const renderMarkersAndRoutes = (delivery, home, optimalCoords, deviatedCoords, showOptimal, showDeviated, driverDetails) => {
+      deliveryMarker[driverDetails.name] = L.marker([delivery.lat, delivery.lng], {
+        icon: L.divIcon({
+          className: 'custom-icon',
+          html: '<div style="font-size: 30px;">🛵</div>',
+          iconAnchor: [30, 30]
+        })
+      }).addTo(map).bindTooltip(
+            `<div style="font-size: 7px;">
+              ${driverDetails.name} 🛵
+              ${driverDetails.time_elapsed ? `<br>Time elapsed: ${driverDetails.time_elapsed}` : ''}
+            </div>`,
+            { permanent: true, direction: 'top', offset: [0, -10] }
+        );
+      
+      homeMarker[driverDetails.name] = L.marker([home.lat, home.lng], {
+        icon: L.divIcon({
+          className: 'custom-icon',
+          html: '<div style="font-size: 30px;">🏠</div>',
+          iconAnchor: [30, 30]
+        })
+      }).addTo(map).bindTooltip(
+          `<div style="font-size: 7px;">
+            ${driverDetails.name} Delivery Location 🏠
+            ${driverDetails.distance_covered ? `<br>Dist Remaining: ${driverDetails.distance_covered} km` : ''}
+          </div>`,
+          { permanent: true, direction: 'top', offset: [0, -10] }
+        );
+
+      if (showDeviated) {
+        deviatedRoute[driverDetails.name] = L.polyline(deviatedCoords, { color: 'red', weight: 3, opacity: 0.7 }).addTo(map);
+      }
+
+      if (showOptimal) {
+        optimalRoute[driverDetails.name] = L.polyline(optimalCoords, { color: 'green', weight: 3, opacity: 0.7 }).addTo(map);
+      }
+    };
+
+    const startDelivery = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/start-delivery');
+        const data = await response.json();
+
+        const result = driversTimeAndDist.map(driver => {
+          const isOnTime = data[driver.name];
+          const status = isOnTime ? "✅ on time" : "❌ late";
+          return `${driver.name} covered ${driver.distance_covered} km in ${driver.time_elapsed} mins – status: ${status}`;
+        });
+
+        //alert(result.join('\n'));
+
+      } catch (err) {
+        console.error("Error starting delivery:", err);
+      }
+    };
+
+    const checkDeliverStatus = async () => {
+      window.open('./utility/checkDeliveryStatus.html', '_blank');
+    };
+
+    const fetchProducerData = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/producer-info');
+        if (response.status === 204) return;
+
+        const data = await response.json();
+        const box = document.getElementById("producer-textbox");
+        const entry = document.createElement("div");
+
+        entry.innerHTML = `<strong>${producerCount++}.)</strong> Delivery Executive Status: ${JSON.stringify(data)} <br>`;
+        box.appendChild(entry);
+        box.appendChild(document.createElement("hr"));
+        entry.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      } catch (err) {
+        console.error("Error fetching producer info:", err);
+      }
+    };
+
+    const fetchConsumerData = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/consumer-info');
+        if (response.status === 204) return;
+
+        const data = await response.json();
+        const { driverName, lat, lng, optimal } = data;
+
+        [deliveryMarker, homeMarker, optimalRoute, deviatedRoute].forEach(markerGroup => {
+          if (markerGroup[driverName]) map.removeLayer(markerGroup[driverName]);
+        });
+
+        activeDriver = allRoutes.find(d => d.name === driverName);
+
+        if (optimal && activeDriver.optimalPath.length > 2) {
+          activeDriver.optimalPath = activeDriver.optimalPath.filter(p => !(p.lat === lat && p.lng === lng));
+        } else if (!optimal && activeDriver.deviatedPath.length > 2) {
+          activeDriver.deviatedPath = activeDriver.deviatedPath.filter(p => !(p.lat === lat && p.lng === lng));
+        }
+
+        const sourcePath = optimal ? activeDriver.optimalPath : activeDriver.deviatedPath;
+        driversTimeAndDist = data.driversTimeAndDist || [];
+        ;
+        renderMarkersAndRoutes(sourcePath[0], sourcePath.at(-1),
+          sourcePath.map(p => [p.lat, p.lng]),
+          sourcePath.map(p => [p.lat, p.lng]), optimal, !optimal, driversTimeAndDist.find(d => d.name === driverName));
+
+        const box = document.getElementById("consumer-textbox");
+        const entry = document.createElement("div");
+        entry.innerHTML = `<strong>${consumerCount++}.)</strong> ${JSON.stringify(data)} <br>`;
+        box.appendChild(entry);
+        box.appendChild(document.createElement("hr"));
+        entry.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+        driversTimeAndDist = data.driversTimeAndDist || [];
+        const tooltip = document.getElementById('drivers-tooltip');
+        tooltip.textContent = driversTimeAndDist
+          .map(driver => `${driver.name}: Dist Left ${driver.distance_covered} km, Time Elapsed ${driver.time_elapsed}`)
+          .join('\n');
+      } catch (err) {
+        console.error("Error fetching consumer info:", err);
+      }
+    };
+
+    fetchLiveCoordinates();
+    
+    setInterval(fetchProducerData, 0);
+    setInterval(fetchConsumerData, 0);
+
+    document.getElementById("start-delivery").addEventListener("click", startDelivery);
+    document.getElementById("check-deliver-status").addEventListener("click", checkDeliverStatus);
+  });
+</script>
+
+
+</body>
+</html>
