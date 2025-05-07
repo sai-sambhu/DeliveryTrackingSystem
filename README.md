@@ -63,7 +63,24 @@ docker compose down -v
 
 ### 4. View in Browser
 
-Visit: index.html
+Visit: index.html by clicking on the file in the browser which is not safari
+
+(or) 
+
+✅ macOS (Terminal)
+```bash
+open index.html
+```
+
+✅ Windows (Command Prompt)
+```bash
+start index.html
+```
+
+✅ Linux (Terminal)
+```bash
+xdg-open index.html
+```
 
 - Use the "See Live Deliveries" button to start streaming agent position
 - You’ll see agents updating in real-time as data flows from MongoDB → Debezium → Kafka → Frontend
