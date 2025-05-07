@@ -51,6 +51,7 @@ async function initializeMongoDB() {
         name: 'Driver Bob',
         lat: 51.504148054725356,
         lng: -0.09527206420898439,
+        optimal: true
       });
     }
   } catch (err) {
@@ -78,15 +79,17 @@ async function initializeKafkaConsumer() {
         }
 
         const parsedMessage = JSON.parse(message.value.toString());
+        if (parsedMessage.op !== 'u') return;
         if (parsedMessage.after) {
           parsedMessage.after = JSON.parse(parsedMessage.after);
         }
 
-        const { lat, lng, driverName, optimal } = parsedMessage.after;
+        const { lat, lng, name, optimal } = parsedMessage.after;
+        
         const refineMessage = {
           lat,
           lng,
-          driverName,
+          name,
           optimal,
           db: parsedMessage.source.db,
           collection: parsedMessage.source.collection,
@@ -96,23 +99,23 @@ async function initializeKafkaConsumer() {
         const now = parsedMessage.ts_ms;
         const coordsNow = [ refineMessage.lat, refineMessage.lng ]
         
-        if (driversTimeAndDist[driverName]) {
-          driversTimeAndDist[driverName].last_update_time = now;
+        if (driversTimeAndDist[name]) {
+          driversTimeAndDist[name].last_update_time = now;
 
-          const elapsedMillis = now - driversTimeAndDist[driverName].start_time;
+          const elapsedMillis = now - driversTimeAndDist[name].start_time;
           const totalSeconds = Math.floor(elapsedMillis / 1000);
           const minutes = Math.floor(totalSeconds / 60);
           const seconds = totalSeconds % 60;
-          driversTimeAndDist[driverName].time_elapsed = `${minutes}m ${seconds}s`;
+          driversTimeAndDist[name].time_elapsed = `${minutes}m ${seconds}s`;
 
   
-          driversTimeAndDist[driverName].last_coord = coordsNow
-          driversTimeAndDist[driverName].distance_covered = getDistanceFromLatLonInKm(driversTimeAndDist[driverName].start_coord, driversTimeAndDist[driverName].last_coord).toFixed(2); 
+          driversTimeAndDist[name].last_coord = coordsNow
+          driversTimeAndDist[name].distance_covered = getDistanceFromLatLonInKm(driversTimeAndDist[name].start_coord, driversTimeAndDist[name].last_coord).toFixed(2); 
 
         } else {
-          const coordHome = deliverDriversCoordinates.find(d => d.name === driverName).optimalPath.at(-1);
+          const coordHome = deliverDriversCoordinates.find(d => d.name === name).optimalPath.at(-1);
           const latLngArray = [coordHome.lat, coordHome.lng];
-          driversTimeAndDist[driverName] = {
+          driversTimeAndDist[name] = {
             start_time: now,
             last_update_time: now,
             time_elapsed: 0.00,
@@ -125,13 +128,13 @@ async function initializeKafkaConsumer() {
           };
         }
 
-        refineMessage.driversTimeAndDist = Object.entries(driversTimeAndDist).map(([name, data]) => ({
-          name,
+        refineMessage.driversTimeAndDist = Object.entries(driversTimeAndDist).map(([driverName, data]) => ({
+          driverName,
           time_elapsed: data.time_elapsed,
           distance_covered: data.distance_covered,
         }));
 
-        console.log('📍Kafka message:', parsedMessage);
+        console.log('📍Kafka message:', refineMessage);
         consumerCoordinates.push(refineMessage);
       } catch (err) {
         console.error('❌ Error processing Kafka message:', err);
@@ -172,7 +175,7 @@ app.get('/start-delivery', async (req, res) => {
         {},
         {
           $set: {
-            driverName: driverCoordinate.name,
+            name: driverCoordinate.name,
             lat: driverCoordinate.lat,
             lng: driverCoordinate.lng,
             optimal: driverCoordinate.optimal,
@@ -187,8 +190,8 @@ app.get('/start-delivery', async (req, res) => {
         console.log('ℹ️ No update needed for:', driverCoordinate);
       }
 
-      // Wait for 1 second before next iteration
-      await delay(0);
+      // Wait for 100 ms before next iteration
+      await delay(100);
     }
 
     didDeliveryEnd = true;
