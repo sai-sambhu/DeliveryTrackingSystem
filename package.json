@@ -1,6 +1,7 @@
 {
-  "name": "multideliverytracking",
+  "name": "delivery-tracking-vcore-debezium",
   "version": "1.0.0",
+  "description": "A real-time delivery tracking web application powered by **MongoDB vCore Change Streams** (Cosmos DB), integrated with **Kafka** using the **Debezium MongoDB Connector**.",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -8,7 +9,6 @@
   },
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "axios": "^1.9.0",
     "cors": "^2.8.5",
