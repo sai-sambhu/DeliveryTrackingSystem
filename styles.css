@@ -73,13 +73,6 @@ header {
     border-radius: 4px;
 }
 
-.buttons button:nth-child(3) {
-    background-color: #28a745; /* Green */
-    color: white;
-    border: none;
-    border-radius: 4px;
-}
-
 
 .producer-text-area {
     height: 180px; /* Fix height */

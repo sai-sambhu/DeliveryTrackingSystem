@@ -87,7 +87,7 @@
             driver.deviatedPath.map(p => [p.lat, p.lng]), true, true, {name: driver.name});
         });
       } catch (err) {
-        console.error("Error fetching coordinates:", err);
+        //console.error(err.code,"Error fetching coordinates:", err);
       }
     };
 
@@ -142,18 +142,8 @@
       try {
         const response = await fetch('http://localhost:3000/start-delivery');
         const data = await response.json();
-
-        const result = driversTimeAndDist.map(driver => {
-          const isOnTime = data[driver.name];
-          const status = isOnTime ? "✅ on time" : "❌ late";
-          return `${driver.name} covered ${driver.distance_covered} km in ${driver.time_elapsed} mins – status: ${status}`;
-        });
-
-
-        //alert(result.join('\n'));
-
       } catch (err) {
-        console.error("Error starting delivery:", err);
+        console.error(err.code,"Error starting delivery:", err);
       }
     };
 
@@ -172,7 +162,7 @@
         box.appendChild(document.createElement("hr"));
         entry.scrollIntoView({ behavior: 'smooth', block: 'end' });
       } catch (err) {
-        console.error("Error fetching producer info:", err);
+        //console.error(err.code,"Error fetching producer info:", err);
       }
     };
 
@@ -181,6 +171,7 @@
         const response = await fetch('http://localhost:3000/consumer-info');
         if (response.status === 204) return;
 
+        isStartDeliveryClicked = true;
         const data = await response.json();
         const { driverName, lat, lng, optimal } = data;
 
@@ -190,14 +181,22 @@
 
         activeDriver = allRoutes.find(d => d.name === driverName);
 
+        console.log(activeDriver);
+
         if (optimal && activeDriver.optimalPath.length > 2) {
-          activeDriver.optimalPath = activeDriver.optimalPath.filter(p => !(p.lat === lat && p.lng === lng));
+          //activeDriver.optimalPath = activeDriver.optimalPath.filter(p => !(p.lat === lat && p.lng === lng));
+          const index = activeDriver.optimalPath.findIndex(p => p.lat === lat && p.lng === lng);
+
+          activeDriver.optimalPath = activeDriver.optimalPath.slice(index + 1);
+                  
         } else if (!optimal && activeDriver.deviatedPath.length > 2) {
-          activeDriver.deviatedPath = activeDriver.deviatedPath.filter(p => !(p.lat === lat && p.lng === lng));
+          //activeDriver.deviatedPath = activeDriver.deviatedPath.filter(p => !(p.lat === lat && p.lng === lng));
+          const index = activeDriver.deviatedPath.findIndex(p => p.lat === lat && p.lng === lng);
+          activeDriver.deviatedPath = activeDriver.deviatedPath.slice(index + 1);
         }
 
         const sourcePath = optimal ? activeDriver.optimalPath : activeDriver.deviatedPath;
-        driversTimeAndDist = data.driversTimeAndDist || [];
+        driversTimeAndDist = data.driversTimeAndDist || {};
         ;
         renderMarkersAndRoutes(sourcePath[0], sourcePath.at(-1),
           sourcePath.map(p => [p.lat, p.lng]),
@@ -210,21 +209,20 @@
         box.appendChild(document.createElement("hr"));
         entry.scrollIntoView({ behavior: 'smooth', block: 'end' });
 
-        driversTimeAndDist = data.driversTimeAndDist || [];
         const tooltip = document.getElementById('drivers-tooltip');
         tooltip.textContent = driversTimeAndDist
           .map(driver => `${driver.name}: Dist Left ${driver.distance_covered} km, Time Elapsed ${driver.time_elapsed}`)
           .join('\n');
       } catch (err) {
-        console.error("Error fetching consumer info:", err);
+        //console.error(err.code,"Error fetching consumer info:", err);
       }
     };
 
     fetchLiveCoordinates();
     
-    setInterval(fetchProducerData, 0);
-    setInterval(fetchConsumerData, 0);
-    setInterval(fetchSummaryStatus, 0); 
+    setInterval(fetchProducerData, 100);
+    setInterval(fetchConsumerData, 100);
+    setInterval(fetchSummaryStatus, 100); 
 
     document.getElementById("start-delivery").addEventListener("click", startDelivery);
     document.getElementById('toggle-info').addEventListener('click', () => {
@@ -253,7 +251,7 @@
           tbody.appendChild(row);
         });
       } catch (error) {
-        console.error('Failed to load delivery status:', error);
+        //console.error(error.code,'Failed to load delivery status:', error);
       }
     }
 

@@ -156,14 +156,15 @@ initializeServices();
 // === API Routes ===
 
 app.get('/coordinates-list', (req, res) => {
-  driversTimeAndDist = {}; // Reset timers
+  if (didDeliveryEnd) driversTimeAndDist = {}; // Reset timers
   res.send(deliverDriversCoordinates);
 });
 
+let didDeliveryEnd = false;
 app.get('/start-delivery', async (req, res) => {
   try {
     const driversCoordinates = allDeliveryDriversMap;
-
+    didDeliveryEnd = false
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     for (const driverCoordinate of driversCoordinates) {
@@ -190,6 +191,7 @@ app.get('/start-delivery', async (req, res) => {
       await delay(0);
     }
 
+    didDeliveryEnd = true;
     res.json(driversOptimalPathInfo);
   } catch (err) {
     console.error('❌ Error updating coordinates:', err);
