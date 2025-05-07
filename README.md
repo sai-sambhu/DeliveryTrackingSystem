@@ -69,16 +69,19 @@ Visit: index.html by clicking on the file in the browser which is not safari
 
 ✅ macOS (Terminal)
 ```bash
+cd navigate to repo directory
 open index.html
 ```
 
 ✅ Windows (Command Prompt)
 ```bash
+cd navigate to repo directory
 start index.html
 ```
 
 ✅ Linux (Terminal)
 ```bash
+cd navigate to repo directory
 xdg-open index.html
 ```
 

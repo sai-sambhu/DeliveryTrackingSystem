@@ -87,7 +87,7 @@
             driver.deviatedPath.map(p => [p.lat, p.lng]), true, true, {name: driver.name});
         });
       } catch (err) {
-        //console.error(err.code,"Error fetching coordinates:", err);
+        console.error(err.code,"Error fetching coordinates:", err);
       }
     };
 
@@ -162,7 +162,7 @@
         box.appendChild(document.createElement("hr"));
         entry.scrollIntoView({ behavior: 'smooth', block: 'end' });
       } catch (err) {
-        //console.error(err.code,"Error fetching producer info:", err);
+        console.error(err.code,"Error fetching producer info:", err);
       }
     };
 
@@ -180,9 +180,7 @@
         });
 
         activeDriver = allRoutes.find(d => d.name === driverName);
-
-        console.log(activeDriver);
-
+        
         if (optimal && activeDriver.optimalPath.length > 2) {
           //activeDriver.optimalPath = activeDriver.optimalPath.filter(p => !(p.lat === lat && p.lng === lng));
           const index = activeDriver.optimalPath.findIndex(p => p.lat === lat && p.lng === lng);
@@ -214,7 +212,7 @@
           .map(driver => `${driver.name}: Dist Left ${driver.distance_covered} km, Time Elapsed ${driver.time_elapsed}`)
           .join('\n');
       } catch (err) {
-        //console.error(err.code,"Error fetching consumer info:", err);
+        console.error(err.code,"Error fetching consumer info:", err);
       }
     };
 
@@ -233,6 +231,7 @@
     async function fetchSummaryStatus() {
       try {
         const response = await fetch('http://localhost:3000/check-delivery-status');
+        if (response.status === 204) return;
         const data = await response.json();
         const tbody = document.getElementById('status-table-body');
         tbody.innerHTML = ''; // Clear old data
@@ -251,7 +250,7 @@
           tbody.appendChild(row);
         });
       } catch (error) {
-        //console.error(error.code,'Failed to load delivery status:', error);
+        console.error(error.code,'Failed to load delivery status:', error);
       }
     }
 

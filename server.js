@@ -131,7 +131,7 @@ async function initializeKafkaConsumer() {
           distance_covered: data.distance_covered,
         }));
 
-        console.log('📍Kafka message:', refineMessage);
+        console.log('📍Kafka message:', parsedMessage);
         consumerCoordinates.push(refineMessage);
       } catch (err) {
         console.error('❌ Error processing Kafka message:', err);
@@ -210,6 +210,7 @@ app.get('/consumer-info', (req, res) => {
 });
 
 app.get('/check-delivery-status', (req, res) => {
+  if (driversTimeAndDist == {}) return res.sendStatus(204);
   res.send(driversTimeAndDist);
 });
 
