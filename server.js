@@ -143,8 +143,8 @@ async function initializeKafkaConsumer() {
 // === Initialization Wrapper ===
 async function initializeServices() {
   try {
-    await registerMongoConnector();
     await initializeMongoDB();
+    await registerMongoConnector();
     await initializeKafkaConsumer();
     console.log('✅ MongoDB and Kafka consumer initialized successfully.');
   } catch (error) {
