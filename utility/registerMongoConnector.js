@@ -1,6 +1,10 @@
+require('dotenv').config({ path: './.env' });
+
 const axios = require('axios');
 const fs = require('fs');
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const DEBEZIUMCONNECTORPORT = process.env.DEBEZIUMCONNECTORPORT || 8030;
 
 async function registerMongoConnector() {
   try {
@@ -8,7 +12,7 @@ async function registerMongoConnector() {
     const data = fs.readFileSync('./mongo-connector.json', 'utf8');
 
     // Make the POST request to Kafka Connect
-    const response = await axios.post('http://debezium-connect:8083/connectors', JSON.parse(data), {
+    const response = await axios.post('http://debezium-connect:'+DEBEZIUMCONNECTORPORT+'/connectors', JSON.parse(data), {
       headers: {
         'Content-Type': 'application/json',
       },

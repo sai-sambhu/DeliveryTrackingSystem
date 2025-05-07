@@ -29,7 +29,7 @@ header {
 #map {
     flex: 1;
     margin: 0px;
-    height: 500px
+    height: 255px
 }
 .info-section {
     flex: 1;
@@ -55,7 +55,7 @@ header {
     margin-bottom: 10px;
 }
 .buttons button {
-    padding: 5px 5px;
+    padding: 4px 4px;
     font-size: 1rem;
     cursor: pointer;
 }
@@ -72,6 +72,14 @@ header {
     border: none;
     border-radius: 4px;
 }
+
+.buttons button:nth-child(3) {
+    background-color: #28a745; /* Green */
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+
 
 .producer-text-area {
     height: 180px; /* Fix height */
@@ -114,3 +122,27 @@ header {
     visibility: visible;
   }
   
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+  }
+  thead {
+    background-color: #007bff;
+    color: white;
+  }
+  th, td {
+    padding: 2px 5px;
+    text-align: center;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .optimal {
+    color: green;
+    font-weight: bold;
+  }
+  .non-optimal {
+    color: red;
+  }

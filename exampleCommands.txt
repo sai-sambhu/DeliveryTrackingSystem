@@ -4,13 +4,13 @@
 docker ps
 
 # Start the containers
-docker-compose up -d
+docker compose up -d
 
 # Tail logs from a container (e.g., node backend)
 docker logs -f node-server
 
 # Stop the containers
-docker-compose down -v
+docker compose down -v
 
 # example open index.html in web browser
 file:///C:/Desktop/Nodejs/multiDeliveryTracking/index.html

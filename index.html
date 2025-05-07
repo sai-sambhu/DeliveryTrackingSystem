@@ -13,17 +13,38 @@
 <header>Demo App for vCore Change Streams integration with Kafka Debezium Connector</header>
 
 <div class="container">
+
   <div class="map-section">
     <h2>Delivery Tracking App</h2>
     <div class="buttons">
       <button id="start-delivery">See Live Deliveries</button>
-      <button id="check-deliver-status">Check Deliver Status</button>
+      <button id="toggle-info">Show Summary</button>
     </div>
     <div id="map"></div>
+    <div id="summary-section" style="display: none;">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Time Elapsed</th>
+        <th>Current Distance to Delivery Location (km)</th>
+        <th>Total Distance Covered (km)</th>
+        <th>Start Coordinates</th>
+        <th>Last Coordinates</th>
+        <th>Optimal Path Choosen</th>
+      </tr>
+    </thead>
+    <tbody id="status-table-body"></tbody>
+  </table>
+    </div>
   </div>
+
+  
+
+
   <div class="info-section">
     <div class="producer-section">
-      <h3>Delivery Agent Live Location <br>(Updates from driver's app to vCore)</h3>
+      <h3>Delivery Agent GPS location <br>(update coordinates from driver's app to vCore)</h3>
       <div class="producer-text-area" id="producer-textbox"></div>
     </div>
     <div class="consumer-section">
@@ -108,7 +129,16 @@
       }
     };
 
+    let isStartDeliveryClicked = false;
+    const mapDiv = document.getElementById('map');
+    const summarySection = document.getElementById('summary-section');
     const startDelivery = async () => {
+
+      mapDiv.style.display = 'block';
+      summarySection.style.display = 'none';
+      if (isStartDeliveryClicked) return;
+      isStartDeliveryClicked = true;
+
       try {
         const response = await fetch('http://localhost:3000/start-delivery');
         const data = await response.json();
@@ -119,6 +149,7 @@
           return `${driver.name} covered ${driver.distance_covered} km in ${driver.time_elapsed} mins – status: ${status}`;
         });
 
+
         //alert(result.join('\n'));
 
       } catch (err) {
@@ -126,10 +157,7 @@
       }
     };
 
-    const checkDeliverStatus = async () => {
-      window.open('./utility/checkDeliveryStatus.html', '_blank');
-    };
-
+  
     const fetchProducerData = async () => {
       try {
         const response = await fetch('http://localhost:3000/producer-info');
@@ -196,9 +224,40 @@
     
     setInterval(fetchProducerData, 0);
     setInterval(fetchConsumerData, 0);
+    setInterval(fetchSummaryStatus, 0); 
 
     document.getElementById("start-delivery").addEventListener("click", startDelivery);
-    document.getElementById("check-deliver-status").addEventListener("click", checkDeliverStatus);
+    document.getElementById('toggle-info').addEventListener('click', () => {
+      mapDiv.style.display = 'none';
+      summarySection.style.display = 'block';
+    });
+
+    async function fetchSummaryStatus() {
+      try {
+        const response = await fetch('http://localhost:3000/check-delivery-status');
+        const data = await response.json();
+        const tbody = document.getElementById('status-table-body');
+        tbody.innerHTML = ''; // Clear old data
+  
+        Object.entries(data).forEach(([driver, info]) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${driver} 🛵</td>
+            <td>${info.time_elapsed}</td>
+            <td>${info.distance_covered} km</td>
+            <td>${info.total_dist.toFixed(2)} km</td>
+            <td>[${info.start_coord[0]}, ${info.start_coord[1]}]</td>
+            <td>[${info.initial_driver_start[0]}, ${info.initial_driver_start[1]}]</td>
+            <td class="${info.optimal ? 'optimal' : 'non-optimal'}">${info.optimal ? '✔️' : '❌'}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Failed to load delivery status:', error);
+      }
+    }
+
+
   });
 </script>
 
