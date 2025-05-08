@@ -7,22 +7,10 @@ This app simulates **delivery agents 🛵** moving toward **Delivery Locations �
 
 ## ⚙️ Pre-requisites
 
-### 1. Cosmos DB for MongoDB vCore instance, Enabled with Change Streams feature
-
-To create a mongo db vCore instance using Cosmos DB:
-- Follow 🔗 [official docs](https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/vcore/quickstart-portal) page for step by step guide on creating a Azure CosmosDB for MongoDB vCore resource.
-
-To enable change streams feature in Azure Cosmos DB for MongoDB vCore:
-
-- Follow the 🔗 [official docs](https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/vcore/change-streams?tabs=javascript%2CInsert) for enabling the feature and initiating change streams over a collection  
-
-
-### 2. Install Docker
-
-This project uses Docker and Docker Compose.
-- Follow the🔗 [official docs](https://docs.docker.com/get-docker/) of docker to install and run the 
-
-
+- A **Cosmos DB for MongoDB vCore** instance (🔗 [Create one](https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/vcore/quickstart-portal))
+    - ✅ **Change Streams** enabled on the cluster (🔗 [Enable it](https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/vcore/change-streams?tabs=javascript%2CInsert))
+    - 💡 **Store the MongoDB connection string** for use in subsequent configuration steps
+- **Docker** and **Docker Compose** installed and running (🔗 [Install guide](https://docs.docker.com/get-docker/))
 
 ## 🚀 Getting Started
 
